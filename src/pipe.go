@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"compress/zlib"
 	"encoding/base64"
-	"io"
+	//"io"
 	"logp"
 	"net"
 	"time"
@@ -45,7 +45,7 @@ func PipeThenClose(src, dst net.Conn) {
 				break
 			}
 		}
-		if err == io.EOF {
+		if err != nil {
 			logp.Err("read:%v", err)
 			// Always "use of closed network connection", but no easy way to
 			// identify this specific error. So just leave the error along for now.
