@@ -5,4 +5,5 @@ type Options struct {
 	RemoteAddr string
 	CertCRT    string
 	CertKey    string
+	Mode       string
 }

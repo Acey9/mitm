@@ -40,7 +40,44 @@ func (mi *MITM) TLSListen(network, address string) error {
 				logp.Err("TLSListen.Accept:%v", err)
 				break
 			}
-			go mi.initHandler(conn)
+			switch mi.options.Mode {
+			case "client":
+				go mi.initHandler(conn)
+			default:
+				go mi.TLSInitHandler(conn)
+			}
+
+		}
+		time.Sleep(6 * time.Second)
+	}
+	return nil
+}
+
+func (mi *MITM) Listen(network, address string) error {
+	for {
+		srv, err := net.Listen(network, address)
+		if err != nil {
+			logp.Err("Listen:%v", err)
+			time.Sleep(6 * time.Second)
+			continue
+		}
+
+		defer srv.Close()
+
+		for {
+			conn, err := srv.Accept()
+			if err != nil {
+				logp.Err("Listen.Accept:%v", err)
+				break
+			}
+
+			switch mi.options.Mode {
+			case "server":
+				go mi.TLSInitHandler(conn)
+			default:
+				go mi.initHandler(conn)
+			}
+
 		}
 		time.Sleep(6 * time.Second)
 	}
@@ -48,6 +85,17 @@ func (mi *MITM) TLSListen(network, address string) error {
 }
 
 func (mi *MITM) initHandler(conn net.Conn) {
+	logp.Debug("mitm", "[%v -> %v] accept", conn.RemoteAddr(), conn.LocalAddr())
+	remotConn, err := net.Dial("tcp", mi.options.RemoteAddr)
+	if err != nil {
+		logp.Err("%v", err)
+		return
+	}
+	go PipeThenClose(conn, remotConn)
+	PipeThenClose(remotConn, conn)
+}
+
+func (mi *MITM) TLSInitHandler(conn net.Conn) {
 	logp.Debug("mitm", "[%v -> %v] tls.accept", conn.RemoteAddr(), conn.LocalAddr())
 	remotConn, err := tls.Dial("tcp", mi.options.RemoteAddr, &tls.Config{InsecureSkipVerify: true})
 	if err != nil {
@@ -59,7 +107,14 @@ func (mi *MITM) initHandler(conn net.Conn) {
 }
 
 func (mi *MITM) start() {
-	mi.TLSListen("tcp", mi.options.LocalAddr)
+	switch mi.options.Mode {
+	case "server":
+		mi.Listen("tcp", mi.options.LocalAddr)
+	case "client":
+		mi.TLSListen("tcp", mi.options.LocalAddr)
+	default:
+		mi.TLSListen("tcp", mi.options.LocalAddr)
+	}
 }
 
 func usage() {
@@ -82,10 +137,11 @@ func optParse() {
 	flag.Uint64Var(&rotateEveryKB, "r", 1024, "rotate every MB")
 	flag.IntVar(&keepFiles, "k", 20, "number of keep files")
 
-	flag.StringVar(&options.LocalAddr, "L", "", "local addr")
+	flag.StringVar(&options.LocalAddr, "L", "127.0.0.1:1360", "local addr")
 	flag.StringVar(&options.RemoteAddr, "R", "", "remote addr")
 	flag.StringVar(&options.CertCRT, "crt", "./localhost.crt", "cert crt")
 	flag.StringVar(&options.CertKey, "key", "./localhost.key", "cert key")
+	flag.StringVar(&options.Mode, "m", "", "mode, client or server, default is \"\"")
 
 	logging.Files = &fileRotator
 	if logging.Files.Path != "" {
