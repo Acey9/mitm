@@ -86,7 +86,7 @@ func (mi *MITM) Listen(network, address string) error {
 }
 
 func (mi *MITM) initHandler(conn net.Conn) {
-	logp.Debug("mitm", "[%v -> %v] accept", conn.RemoteAddr(), conn.LocalAddr())
+	logp.Debug("mitm", "client:%v local:%v remote: tcp://%v ", conn.RemoteAddr(), conn.LocalAddr(), mi.options.RemoteAddr)
 	remotConn, err := net.Dial("tcp", mi.options.RemoteAddr)
 	if err != nil {
 		logp.Err("%v", err)
@@ -97,7 +97,7 @@ func (mi *MITM) initHandler(conn net.Conn) {
 }
 
 func (mi *MITM) TLSInitHandler(conn net.Conn) {
-	logp.Debug("mitm", "[%v -> %v] tls.accept", conn.RemoteAddr(), conn.LocalAddr())
+	logp.Debug("mitm", "client:%v local:%v remote: tls://%v ", conn.RemoteAddr(), conn.LocalAddr(), mi.options.RemoteAddr)
 	remotConn, err := tls.Dial("tcp", mi.options.RemoteAddr, &tls.Config{InsecureSkipVerify: true})
 	if err != nil {
 		logp.Err("%v", err)
