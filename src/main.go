@@ -7,6 +7,7 @@ import (
 	"logp"
 	"net"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -133,11 +134,11 @@ func optParse() {
 
 	flag.StringVar(&logging.Level, "l", "info", "logging level")
 	flag.StringVar(&fileRotator.Path, "lp", "/var/logs", "log path")
-	flag.StringVar(&fileRotator.Name, "n", "mitm.log", "log name")
+	flag.StringVar(&fileRotator.Name, "n", "", "log name")
 	flag.Uint64Var(&rotateEveryKB, "r", 1024, "rotate every MB")
-	flag.IntVar(&keepFiles, "k", 20, "number of keep files")
+	flag.IntVar(&keepFiles, "k", 50, "number of keep files")
 
-	flag.StringVar(&options.LocalAddr, "L", "127.0.0.1:1360", "local addr")
+	flag.StringVar(&options.LocalAddr, "L", "0.0.0.0:51360", "local addr")
 	flag.StringVar(&options.RemoteAddr, "R", "", "remote addr")
 	flag.StringVar(&options.CertCRT, "crt", "./localhost.crt", "cert crt")
 	flag.StringVar(&options.CertKey, "key", "./localhost.key", "cert key")
@@ -155,6 +156,11 @@ func optParse() {
 
 	flag.Usage = usage
 	flag.Parse()
+
+	if fileRotator.Name == "" {
+		fileRotator.Name = strings.ReplaceAll(options.RemoteAddr, ".", "_")
+		fileRotator.Name = strings.ReplaceAll(fileRotator.Name, ":", "__")
+	}
 
 	logp.Init("Beast", &logging)
 }
