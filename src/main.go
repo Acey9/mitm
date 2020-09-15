@@ -17,13 +17,51 @@ type MITM struct {
 	options *Options
 }
 
-func (mi *MITM) TLSListen(network, address string) error {
+var certPem []byte = []byte(`-----BEGIN CERTIFICATE-----
+MIICOTCCAaICCQCJyAK/oXXb8DANBgkqhkiG9w0BAQUFADBhMQswCQYDVQQGEwJD
+TjELMAkGA1UECBMCU1AxDzANBgNVBAcTBnNwcmluZzEPMA0GA1UEChMGc3ByaW5n
+MQ8wDQYDVQQLEwZzcHJpbmcxEjAQBgNVBAMTCWxvY2FsaG9zdDAeFw0xNzA1MjEw
+NDE0MDhaFw0yNzA1MTkwNDE0MDhaMGExCzAJBgNVBAYTAkNOMQswCQYDVQQIEwJT
+UDEPMA0GA1UEBxMGc3ByaW5nMQ8wDQYDVQQKEwZzcHJpbmcxDzANBgNVBAsTBnNw
+cmluZzESMBAGA1UEAxMJbG9jYWxob3N0MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCB
+iQKBgQCze1aGYOeqxg3frCx7NHCzBCpSjcABcI8cKrHZuAnB3axS/cbtZ5fb5R2p
+NzWR/ytP/UKopLoyF7wcGiX/Aii3scvq6/JBxh/zwNzNyfRxazWqrRfQMlolraQh
+iHTJn6DhnkFZ4zDl9NbkaV5fCRsuAYyz47HCCeUDcaTwaIiQPwIDAQABMA0GCSqG
+SIb3DQEBBQUAA4GBAKbacuuOXrJEe1iMwZUMnh7aS48E/nV7Q8f1Ur3oKxb6TZ90
+UZv99fcR9a6iJ/gB3QaRVkZ2ZLnHGbg5JcZAWsOQhIU0VXcRNbd4RuMHOs3ypanw
+rgUlycMrHaeTw3CgN0+gYl1zDKDb6sYqlhwgw+tUkL2IDNab4rPNS0nbIImO
+-----END CERTIFICATE-----`)
+
+var keyPem []byte = []byte(`-----BEGIN RSA PRIVATE KEY-----
+MIICXAIBAAKBgQCze1aGYOeqxg3frCx7NHCzBCpSjcABcI8cKrHZuAnB3axS/cbt
+Z5fb5R2pNzWR/ytP/UKopLoyF7wcGiX/Aii3scvq6/JBxh/zwNzNyfRxazWqrRfQ
+MlolraQhiHTJn6DhnkFZ4zDl9NbkaV5fCRsuAYyz47HCCeUDcaTwaIiQPwIDAQAB
+AoGACeI75JCHkW7wqqWXmX1My37qObuWnD2vk9SCEMRCvUtQxw00nDQ9N53JYV0p
+9Q1BPFltB05y9nk6Ia4K850R0twuE1oLZ6ovV8f9o4MquAlrJ9aVCgFkekGidNMi
+FzPXTPJ8ijKAx/um+2t4kGcyfzQmPdX13aP7tSIwishag+ECQQDkxwQLgSLXvQOu
+0qRcyR9zVMAUFFwkQkxI+GEAVHasrxW6ZPXBLpMhD5dEfE5N1ajzMjBDGcQfvunL
+0To9uLsRAkEAyNavroWSA87UmG3uEZPKi8MI+djHzBcqLcndyRuMMolTdaqMEMYQ
++E/YABHQDo4OetnFOgtt7gaGwE7s7312TwJAIpyFXSQ1XERJWVqe6Ta4Xl91C9Sk
+uAubtPJ24nDk321BsUhy8b4VHkxYi1DvG9F2VQzDxnMQe+kLP/2wfQQEsQJAe0wh
+qrjhvWi656GFaFEdJdRkrE5Dyq3l/RpTCGXbGiNok3JSbvHJ9Ue/SbulyWm4xf7v
+sATYRirHi0Ro/VY+zQJBAJ/QDt8xG757r7UNITj5hvn3HIQMEijIw8mV4pRWKJD/
+3i4AeXDOou+OQ+FM1p7mf9JkfLg1DJffCxcihKqeE3U=
+-----END RSA PRIVATE KEY-----`)
+
+func (mi *MITM) TLSListen(network, address string) (err error) {
+	var cer tls.Certificate
 	for {
-		cer, err := tls.LoadX509KeyPair(mi.options.CertCRT, mi.options.CertKey)
+
+		if mi.options.CertCRT != "" && mi.options.CertKey != "" {
+			cer, err = tls.LoadX509KeyPair(mi.options.CertCRT, mi.options.CertKey)
+		} else {
+			cer, err = tls.X509KeyPair(certPem, keyPem)
+		}
 		if err != nil {
 			logp.Err("TLSListen.tls.config:%v", err)
 			return err
 		}
+
 		config := &tls.Config{Certificates: []tls.Certificate{cer}}
 
 		srv, err := tls.Listen(network, address, config)
@@ -108,13 +146,17 @@ func (mi *MITM) TLSInitHandler(conn net.Conn) {
 }
 
 func (mi *MITM) start() {
+	var err error
 	switch mi.options.Mode {
 	case "server":
-		mi.Listen("tcp", mi.options.LocalAddr)
+		err = mi.Listen("tcp", mi.options.LocalAddr)
 	case "client":
-		mi.TLSListen("tcp", mi.options.LocalAddr)
+		err = mi.TLSListen("tcp", mi.options.LocalAddr)
 	default:
-		mi.TLSListen("tcp", mi.options.LocalAddr)
+		err = mi.TLSListen("tcp", mi.options.LocalAddr)
+	}
+	if err != nil {
+		logp.Err("%v", err)
 	}
 }
 
@@ -140,8 +182,8 @@ func optParse() {
 
 	flag.StringVar(&options.LocalAddr, "L", "0.0.0.0:51360", "local addr")
 	flag.StringVar(&options.RemoteAddr, "R", "", "remote addr")
-	flag.StringVar(&options.CertCRT, "crt", "./localhost.crt", "cert crt")
-	flag.StringVar(&options.CertKey, "key", "./localhost.key", "cert key")
+	flag.StringVar(&options.CertCRT, "crt", "", "cert crt")
+	flag.StringVar(&options.CertKey, "key", "", "cert key")
 	flag.StringVar(&options.Mode, "m", "", "mode, client or server, default is \"\"")
 
 	logging.Files = &fileRotator
