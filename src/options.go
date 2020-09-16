@@ -6,4 +6,6 @@ type Options struct {
 	CertCRT    string
 	CertKey    string
 	Mode       string
+	CertPath   string
+	AddCert    bool
 }

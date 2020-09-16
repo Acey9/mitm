@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"logp"
 	"net"
 	"os"
@@ -145,8 +146,20 @@ func (mi *MITM) TLSInitHandler(conn net.Conn) {
 	PipeThenClose(remotConn, conn)
 }
 
+func (mi *MITM) AddCert() (err error) {
+	err = ioutil.WriteFile(mi.options.CertPath, certPem, 0644)
+	return
+}
+
 func (mi *MITM) start() {
 	var err error
+	if mi.options.AddCert {
+		err = mi.AddCert()
+		if err != nil {
+			logp.Err("%v", err)
+		}
+		return
+	}
 	switch mi.options.Mode {
 	case "server":
 		err = mi.Listen("tcp", mi.options.LocalAddr)
@@ -185,6 +198,8 @@ func optParse() {
 	flag.StringVar(&options.CertCRT, "crt", "", "cert crt")
 	flag.StringVar(&options.CertKey, "key", "", "cert key")
 	flag.StringVar(&options.Mode, "m", "", "mode, client or server, default is \"\"")
+	flag.StringVar(&options.CertPath, "cert-path", "/etc/ssl/certs/abcd.xxx.adf.xx.f.mitm.pem", "add cert to this path")
+	flag.BoolVar(&options.AddCert, "add-cert", false, "add cert")
 
 	logging.Files = &fileRotator
 	if logging.Files.Path != "" {
