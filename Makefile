@@ -1,16 +1,12 @@
 NAME?=mitm
 
-PROJECT_DIR=$(shell echo `pwd`)
-BUILD_DIR=$(PROJECT_DIR)/build
-
+#--tags "static"
 all:
-	@$(CHANGE_VERSION)
-	go build -ldflags "-s -w"  -o $(BUILD_DIR)/$(NAME) $(PROJECT_DIR)/src/*.go
+	go build -ldflags "-s -w"  -o $(NAME) *.go 
 
 debug:
-	@$(SET_ENV)
-	go build -o $(BUILD_DIR)/$(NAME) $(PROJECT_DIR)/src/*.go
+	go build -o $(NAME) *.go
 
 .PHONY: clean
 clean:
-	rm -fr $(BUILD_DIR)/$(NAME)
+	rm -fr $(NAME)
