@@ -63,7 +63,7 @@ func (mi *MITM) TLSListen(network, address string) (err error) {
 			return err
 		}
 
-		config := &tls.Config{Certificates: []tls.Certificate{cer}}
+		config := &tls.Config{Certificates: []tls.Certificate{cer}, MaxVersion: mi.options.TlsMaxVersion}
 
 		srv, err := tls.Listen(network, address, config)
 		if err != nil {
