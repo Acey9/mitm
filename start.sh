@@ -1,1 +1,1 @@
-./mitm -lp ./logs -l debug -L 10.16.20.55:5431 -R 107.182.186.195:443
+./mitm -e -l debug -L 127.0.0.1:5431 -R google.com:443

@@ -63,7 +63,7 @@ func (mi *MITM) TLSListen(network, address string) (err error) {
 			return err
 		}
 
-		config := &tls.Config{Certificates: []tls.Certificate{cer}}
+		config := &tls.Config{Certificates: []tls.Certificate{cer}, MaxVersion: mi.options.TlsMaxVersion}
 
 		srv, err := tls.Listen(network, address, config)
 		if err != nil {
@@ -90,7 +90,6 @@ func (mi *MITM) TLSListen(network, address string) (err error) {
 		}
 		time.Sleep(6 * time.Second)
 	}
-	return nil
 }
 
 func (mi *MITM) Listen(network, address string) error {
@@ -121,7 +120,6 @@ func (mi *MITM) Listen(network, address string) error {
 		}
 		time.Sleep(6 * time.Second)
 	}
-	return nil
 }
 
 func (mi *MITM) initHandler(conn net.Conn) {
@@ -184,6 +182,7 @@ func optParse() {
 	var fileRotator logp.FileRotator
 	var rotateEveryKB uint64
 	var keepFiles int
+	var maxVersionStr string
 
 	options = &Options{}
 
@@ -193,6 +192,8 @@ func optParse() {
 	flag.Uint64Var(&rotateEveryKB, "r", 1024, "rotate every MB")
 	flag.IntVar(&keepFiles, "k", 50, "number of keep files")
 
+	flag.StringVar(&maxVersionStr, "tls-max-version", "", "tls max version, eg: 1.3, 1.2, 1.1, 1.0")
+
 	flag.StringVar(&options.LocalAddr, "L", "0.0.0.0:51360", "local addr")
 	flag.StringVar(&options.RemoteAddr, "R", "", "remote addr")
 	flag.StringVar(&options.CertCRT, "crt", "", "cert crt")
@@ -200,6 +201,17 @@ func optParse() {
 	flag.StringVar(&options.Mode, "m", "", "mode, client or server, default is \"\"")
 	flag.StringVar(&options.CertPath, "cert-path", "/etc/ssl/certs/abcd.xxx.adf.xx.f.mitm.pem", "add cert to this path")
 	flag.BoolVar(&options.AddCert, "add-cert", false, "add cert")
+
+	switch maxVersionStr {
+	case "1.3":
+		options.TlsMaxVersion = tls.VersionTLS13
+	case "1.2":
+		options.TlsMaxVersion = tls.VersionTLS12
+	case "1.1":
+		options.TlsMaxVersion = tls.VersionTLS11
+	case "1.0":
+		options.TlsMaxVersion = tls.VersionTLS10
+	}
 
 	logging.Files = &fileRotator
 	if logging.Files.Path != "" {
