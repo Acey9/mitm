@@ -63,7 +63,7 @@ func (mi *MITM) TLSListen(network, address string) (err error) {
 			return err
 		}
 
-		config := &tls.Config{Certificates: []tls.Certificate{cer}, MaxVersion: mi.options.TlsMaxVersion}
+		config := &tls.Config{Certificates: []tls.Certificate{cer}}
 
 		srv, err := tls.Listen(network, address, config)
 		if err != nil {
@@ -135,7 +135,7 @@ func (mi *MITM) initHandler(conn net.Conn) {
 
 func (mi *MITM) TLSInitHandler(conn net.Conn) {
 	logp.Debug("mitm", "client:%v local:%v remote: tls://%v ", conn.RemoteAddr(), conn.LocalAddr(), mi.options.RemoteAddr)
-	remotConn, err := tls.Dial("tcp", mi.options.RemoteAddr, &tls.Config{InsecureSkipVerify: true})
+	remotConn, err := tls.Dial("tcp", mi.options.RemoteAddr, &tls.Config{InsecureSkipVerify: true, MaxVersion: mi.options.TlsMaxVersion})
 	if err != nil {
 		logp.Err("%v", err)
 		return
